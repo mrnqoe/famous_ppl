@@ -1,0 +1,94 @@
+Use the knex help command from the project directory to see a list commands you could run to generate and use migration files.
+
+Make a migration file
+
+We're going to add a new table to our database in order to simulate a real world situation where a migration is needed.
+
+We'll call this table milestones and it will be all major milestones our famous people have accomplished.
+
+Let's create a migration file and give this new JS file a descriptive name such as create_milestones. Assuming you specified the connection settings in the knexfile.js, you should be able to do and see the following:
+
+knex migrate:make create_milestones
+Using environment: development
+Created Migration: /.../migrations/20160712141337_create_milestones.js
+If you see errors or warnings instead, they will likely be related to the connection settings. Revisit and fix the configuration file, running the migrate:make command as a way to test that you've got it working.
+
+Verify that you have only one migration file in the new migrations folder by removing any other that you may have created while attempting to resolve connection errors.
+Define the migration
+
+For this part you will need to blindly follow the Promise pattern for migrations without fully understanding how promises work. While not ideal, this is often a reality when learning many things at once. Don't worry though, we'll be covering promises soon.
+
+The milestones table should have the following fields:
+
+description (string)
+date_achieved (date)
+Use this blog post along with the Knex documentation to determine how to craft the up and down method to create a table with the necessary columns.
+
+Run the migration
+
+Once you've written your up and down functions and want to run/test the migration, use the necessary knex command in the terminal to run the migration.
+
+Check the database
+
+Once that runs successfully, you should verify that the table was indeed created and looks correct by connecting directly to the database through the psql command:
+
+heroku pg:psql --app <APP_NAME> <DATABASE_NAME>
+heroku-postgres-xyz::BROWN=> \d milestones;
+    Column     |           Type           |     Modifiers
+---------------+--------------------------+-------------------
+ description   | character varying(255)   |
+ date_achieved | date                     |
+
+Rollback!
+
+After examining that output, you notice that you're missing an important field: Ideally all your tables should have a primary key!
+
+An auto-incrementing (primary key) column: id (integer)
+Use Knex's rollback command from the terminal in order to undo the migration. The rollback command will execute the down function for us, which should (if implemented correctly) destroy this new table. The down function is the inverse of the up function. up moves the database version forward one step, and its less frequently used counterpart (rollback) moves it back by executing the opposite SQL command.
+
+Fix the migration
+
+Since we've rolled back our migration, we are able to run it again. Before we do though we need to "fix" our migration to account for the missing column.
+
+Modify the up function by adding the missing id field. Run it again and once you have it working do remember to verify your changes using psql again.
+
+Commit and Push
+
+Having defined the primary key, we now feel more comfortable with the table. Let's go ahead and commit and push these changes so our (fictitious) team mates can eventually pull our "code change" to the database schema and execute the migration on their own machines by running the appropriate knex command against their own development database.
+
+Commit and Push your database migration changes to your repository.
+Another change!
+
+We realize after pushing our change that we forgot yet another important database field in the milestones table: The foreign key to point to the parent famous_people table!
+
+While you could rollback and fix this mistake like you did last time, it could lead to problems.
+
+Discuss & Answer: Why is it better to not rollback and fix the existing migration and to instead create a new migration file?
+Create New Migration
+
+Just like any other piece of code, it's important to name things well. Give your migration a descriptive name such as add_famous_person_id_to_milestones.
+
+Create a second migration (call it something relevant) and have it add the following field to the now existing milestones table:
+
+A foreign_key pointing to the famous person: famous_person_id (integer)
+Run, verify and commit+push this new file to your repository.
+
+Final Result
+
+When inspecting the table using psql, the structure of it should look like this:
+
+heroku-postgres-xyz::BROWN=> \d milestones
+                                       Table "public.milestones"
+      Column      |           Type           |       Modifiers
+------------------+--------------------------+--------------------------
+ id               | integer                  | not null default nextval('milestones_id_seq'::regclass)
+ description      | character varying(255)   |
+ date_achieved    | date                     |
+ famous_person_id | integer                  |
+Indexes:
+    "milestones_pkey" PRIMARY KEY, btree (id)
+Foreign-key constraints:
+    "milestones_famous_person_id_foreign" FOREIGN KEY (famous_person_id) REFERENCES famous_people(id)
+
+Conclusion
+By doing this exercise you were exposed to a very common scenarios and workflows when working with database modifications. This knowledge and experience will help you when creating future database-driven applications such as your mid-term project!
